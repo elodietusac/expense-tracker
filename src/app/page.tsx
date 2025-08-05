@@ -1,102 +1,106 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Navigation } from '@/components/navigation';
+import { ExpenseForm } from '@/components/expense-form';
+import { ExpenseList } from '@/components/expense-list';
+import { Dashboard } from '@/components/dashboard';
+import { ExpenseCharts } from '@/components/expense-charts';
+import { ExportControls } from '@/components/export-controls';
+import { Expense } from '@/types/expense';
+import { storage } from '@/lib/storage';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'expenses' | 'charts' | 'export'>('dashboard');
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    loadExpenses();
+  }, []);
+
+  const loadExpenses = () => {
+    setIsLoading(true);
+    const loadedExpenses = storage.getExpenses();
+    setExpenses(loadedExpenses);
+    setIsLoading(false);
+  };
+
+  const handleExpenseAdded = () => {
+    loadExpenses();
+  };
+
+  const handleExpenseDeleted = () => {
+    loadExpenses();
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setCurrentView('expenses');
+  };
+
+  const handleEditComplete = () => {
+    setEditingExpense(null);
+    loadExpenses();
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading expenses...</p>
+          </div>
         </div>
+      );
+    }
+
+    switch (currentView) {
+      case 'dashboard':
+        return <Dashboard expenses={expenses} />;
+      case 'expenses':
+        return (
+          <div className="space-y-6">
+            <ExpenseForm 
+              onExpenseAdded={handleExpenseAdded}
+              editingExpense={editingExpense || undefined}
+              onEditComplete={handleEditComplete}
+            />
+            <ExpenseList 
+              expenses={expenses}
+              onExpenseDeleted={handleExpenseDeleted}
+              onEditExpense={handleEditExpense}
+            />
+          </div>
+        );
+      case 'charts':
+        return <ExpenseCharts expenses={expenses} />;
+      case 'export':
+        return <ExportControls expenses={expenses} />;
+      default:
+        return <Dashboard expenses={expenses} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation 
+        currentView={currentView}
+        onViewChange={setCurrentView}
+      />
+      
+      <main className="container mx-auto px-4 py-8">
+        {renderContent()}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      
+      <footer className="border-t py-6 md:py-0">
+        <div className="container mx-auto px-4 flex flex-col items-center justify-center gap-4 md:h-24 md:flex-row">
+          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            Built with Next.js, TypeScript, and Tailwind CSS. Data stored locally in your browser.
+          </p>
+        </div>
       </footer>
     </div>
   );
